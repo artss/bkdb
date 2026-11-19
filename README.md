@@ -117,6 +117,8 @@ Manual run: `docker compose run --rm db-dump once`
 
 ## Examples
 
+Ready-to-copy templates: [`compose.yml.example`](compose.yml.example) (the sidecar service for each database type) and [`bkdb.env.example`](bkdb.env.example) (all shared settings with their defaults).
+
 Notification settings go into `bkdb.env` next to the app's `docker-compose.yml`, separate from the app's own `.env`:
 
 ```env

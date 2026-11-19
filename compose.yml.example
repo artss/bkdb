@@ -1,0 +1,58 @@
+# bkdb as a sidecar: add the bkdb service to the app's docker-compose.yml.
+# Settings shared by all sidecars go into bkdb.env (see bkdb.env.example);
+# ${...} values come from the app's own .env, as usual in Compose.
+#
+# Manual run:  docker compose run --rm bkdb once
+
+services:
+  # --- PostgreSQL ------------------------------------------------------------------
+  bkdb:
+    image: ghcr.io/artss/bkdb:latest
+    restart: unless-stopped
+    depends_on: [database]          # the app's database service
+    env_file: bkdb.env
+    environment:
+      DB_TYPE: postgres
+      NAME: myapp                   # -> /backup/myapp.sql
+      PGHOST: database
+      PGUSER: ${DB_USERNAME}
+      PGPASSWORD: ${DB_PASSWORD}
+      # Dump only this database (no roles) instead of the whole cluster.
+      # Needed if the server is older than PostgreSQL 15: a cluster dump made
+      # by pg_dump 18 can't be restored into it.
+      #PG_DB: ${DB_DATABASE_NAME}
+      #SCHEDULE: "30 2 * * *"       # overrides bkdb.env
+    volumes:
+      - /srv/backup/myapp:/backup
+    # docker stop waits for a running dump; raise for large databases.
+    stop_grace_period: 2m
+
+  # --- MariaDB -----------------------------------------------------------------------
+  # bkdb:
+  #   image: ghcr.io/artss/bkdb:latest
+  #   restart: unless-stopped
+  #   depends_on: [db]
+  #   env_file: bkdb.env
+  #   environment:
+  #     DB_TYPE: mariadb
+  #     NAME: myapp
+  #     MARIADB_HOST: db
+  #     MARIADB_USER: root          # all databases need global read privileges
+  #     MARIADB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+  #     #MARIADB_DB: myapp          # single database; the app's own user is enough
+  #     #EXTRA_OPTS: --skip-ssl     # server without TLS
+  #   volumes:
+  #     - /srv/backup/myapp:/backup
+
+  # --- SQLite ------------------------------------------------------------------------
+  # bkdb:
+  #   image: ghcr.io/artss/bkdb:latest
+  #   restart: unless-stopped
+  #   env_file: bkdb.env
+  #   environment:
+  #     DB_TYPE: sqlite
+  #     NAME: myapp                 # -> /backup/myapp.sqlite3
+  #     SQLITE_PATH: /data/db.sqlite3
+  #   volumes:
+  #     - ./data:/data              # read-write: WAL readers need the -shm file
+  #     - /srv/backup/myapp:/backup

@@ -10,6 +10,7 @@ The owner (Art) talks to you in Russian. Code, comments, README and commit messa
 - `Dockerfile` — Alpine 3.24 + bash, coreutils, curl, tzdata, supercronic, sqlite, mariadb-client (11.8), `postgresql${PG_MAJOR}-client` (build arg, default 18 — the newest the base offers; bump base and default together).
 - `.github/workflows/ci.yml` — on PRs and pushes: shellcheck + `test/run.sh` against Postgres 16 and 18; on push to `main` after tests: multi-arch (amd64 + arm64, via QEMU) build pushed to `ghcr.io/artss/bkdb:latest`. Only `:latest` is published — no per-PG-major tags (Art's decision).
 - `README.md` — user-facing docs. Keep it in sync with every behaviour/env change.
+- `compose.yml.example`, `bkdb.env.example` — copy-paste templates (sidecar service per DB type; shared settings with defaults). Keep them in sync with env changes too.
 
 ## How it works
 

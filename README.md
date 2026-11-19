@@ -35,7 +35,7 @@ docker build --build-arg PG_MAJOR=16 -t bkdb:pg16 .
 | Variable | Default | Description |
 |---|---|---|
 | `DB_TYPE` | — | `postgres`, `mariadb` or `sqlite` (required) |
-| `NAME` | `$DB_TYPE` | Output file name: `/backup/$NAME.sql` or `/backup/$NAME.sqlite3` |
+| `NAME` | `$DB_TYPE` | Output file name: `/backup/$NAME.sql` or `/backup/$NAME.sqlite3`. If `NAME` already has an extension (`immich.sql`, `vw.db`), it is used as is |
 | `SCHEDULE` | `0 3 * * *` | Crontab expression, evaluated in `TZ`; `@daily` etc. also work |
 | `TZ` | `UTC` | e.g. `Europe/Berlin` |
 | `RUN_ON_START` | `false` | Also dump once right after the container starts |

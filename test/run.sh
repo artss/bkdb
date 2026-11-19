@@ -176,6 +176,11 @@ expect 0 "telegram unreachable: run still ok" "$out" "${SQLITE[@]}" -e NOTIFY=al
   -e TG_BOT_TOKEN=123:abc -e TG_CHAT_ID=1 -- once
 check "telegram unreachable: warning logged" log_has 'warning: telegram notification failed'
 
+out=$WORK/sqlite-ext
+expect 0 "NAME with extension: exit 0" "$out" "${SQLITE[@]}" -e NAME=vw.db -- once
+expect 0 "NAME with extension, second run: exit 0" "$out" "${SQLITE[@]}" -e NAME=vw.db -- once
+check "NAME with extension: no second extension" eq "$(ls "$out")" "$(printf 'vw.db\nvw.db.1')"
+
 # --- config errors -------------------------------------------------------------------
 section "config errors (exit 2)"
 out=$WORK/cfg

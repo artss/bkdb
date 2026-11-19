@@ -51,6 +51,8 @@ KEEP=${KEEP:-3}                      # dumps kept on disk, including the latest
 
 NAME=${NAME:-$DB_TYPE}
 [[ $NAME =~ ^[A-Za-z0-9._-]+$ ]] || die "NAME may contain only [A-Za-z0-9._-]"
+# A NAME that already has an extension (immich.sql, vw.db) is used as is.
+if [[ $NAME == ?*.?* ]]; then out_file=$NAME; else out_file=$NAME.$EXT; fi
 [[ -d $OUT_DIR && -w $OUT_DIR ]] || die "$OUT_DIR must be a writable directory (mount a volume there)"
 
 # --- telegram -----------------------------------------------------------------
@@ -149,7 +151,7 @@ publish() {
 
 # --- one run -----------------------------------------------------------------
 run_once() {
-  local out="$OUT_DIR/$NAME.$EXT" tmp="$OUT_DIR/.$NAME.$EXT.tmp"
+  local out="$OUT_DIR/$out_file" tmp="$OUT_DIR/.$out_file.tmp"
   local err start size msg
   err=$(mktemp)
   start=$(date +%s)
@@ -183,7 +185,7 @@ crontab=$(mktemp)
 printf '%s %q once\n' "$SCHEDULE" "$self" >"$crontab"
 supercronic -test "$crontab" >/dev/null 2>&1 || die "SCHEDULE='$SCHEDULE' is not a valid cron expression"
 
-log "started: $NAME ($DB_TYPE), schedule '$SCHEDULE' ${TZ:-UTC}, keep $KEEP -> $OUT_DIR/$NAME.$EXT"
+log "started: $NAME ($DB_TYPE), schedule '$SCHEDULE' ${TZ:-UTC}, keep $KEEP -> $OUT_DIR/$out_file"
 if [[ $RUN_ON_START == true ]]; then run_once || true; fi
 
 # supercronic: passes our environment to jobs, never runs a job twice in

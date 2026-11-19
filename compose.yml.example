@@ -1,12 +1,12 @@
-# bkdb as a sidecar: add the db-dump service to the app's docker-compose.yml.
+# bkdb as a sidecar: add the bkdb service to the app's docker-compose.yml.
 # Settings shared by all sidecars go into bkdb.env (see bkdb.env.example);
 # ${...} values come from the app's own .env, as usual in Compose.
 #
-# Manual run:  docker compose run --rm db-dump once
+# Manual run:  docker compose run --rm bkdb once
 
 services:
   # --- PostgreSQL ------------------------------------------------------------------
-  db-dump:
+  bkdb:
     image: ghcr.io/artss/bkdb:latest
     restart: unless-stopped
     depends_on: [database]          # the app's database service
@@ -28,7 +28,7 @@ services:
     stop_grace_period: 2m
 
   # --- MariaDB -----------------------------------------------------------------------
-  # db-dump:
+  # bkdb:
   #   image: ghcr.io/artss/bkdb:latest
   #   restart: unless-stopped
   #   depends_on: [db]
@@ -45,7 +45,7 @@ services:
   #     - /srv/backup/myapp:/backup
 
   # --- SQLite ------------------------------------------------------------------------
-  # db-dump:
+  # bkdb:
   #   image: ghcr.io/artss/bkdb:latest
   #   restart: unless-stopped
   #   env_file: bkdb.env

@@ -38,22 +38,22 @@ The owner (Art) talks to you in Russian. Code, comments, README and commit messa
 
 ## Testing
 
-There is no automated test suite yet. What was verified manually (against Postgres 16, MariaDB 10.11, SQLite 3.45 on the host, script run directly with `once`):
-- dumps + restore round-trip for all three types; `PG_DB` / `MARIADB_DB` single-DB mode; passwords with spaces/`$`; `*_FILE` secrets
-- failures: unreachable server, wrong password, corrupt SQLite → exit 1, previous dumps untouched, no temp files left
-- rotation with KEEP=3, shrink to 1, grow to 4; invalid KEEP/SCHEDULE/DB_TYPE → exit 2
-- Telegram unreachable → warning only
+`test/run.sh` (≈75 s, needs only Docker with compose) builds the image as `bkdb:test`, starts `test/compose.yml` — `pg` (postgres:16, older than the bundled pg_dump 17, like real setups) and `maria` (mariadb:11) seeded from `test/init/`, plus empty `pg-restore` / `maria-restore` — and runs the real container against them:
+- dump + restore round-trip: `pg_dumpall` (data + roles), `PG_DB`, MariaDB all databases and `MARIADB_DB`; `*_FILE` secrets; MariaDB password ` p#a\ss"w'd `
+- failures (wrong password, unreachable server, corrupt SQLite) → exit 1, previous dump byte-identical, no rotation, no temp file
+- rotation: KEEP=3, shrink to 1, grow back; SQLite copy integrity and non-WAL mode
+- Telegram unreachable (`api.telegram.org` mapped to localhost) → warning only, exit 0
+- config errors → exit 2, nothing written; passthrough of other commands
+- cron mode as PID 1: a 7-field `SCHEDULE` (every 2 s) proves jobs run repeatedly with the env, `docker stop` exits 0; `RUN_ON_START`
 
-Also verified: `docker build` (Alpine 3.22: pg_dump 17, mariadb-dump 11.4); MariaDB password ` p#a\ss"w'd ` against a real MariaDB 11 server; non-`cron`/`once` commands pass through without config checks.
+Not covered: `docker stop` waiting for a long-running dump, actual Telegram delivery.
 
-**Not yet verified**: supercronic in the real container (only tested with a stub).
-
-Before committing: `shellcheck bkdb.sh` and `docker build .`. A worthwhile next step is `test/` with a compose file spinning up postgres + mariadb + a SQLite file and running `bkdb once` against each.
+Every behaviour change gets a test there. Before committing: `docker run --rm -v "$PWD:/mnt:ro" koalaman/shellcheck:stable /mnt/bkdb.sh /mnt/test/run.sh` and `test/run.sh`.
 
 ## Roadmap
 
-- GitHub repo; GitHub Actions workflow building and pushing the image on push to `main` (registry not decided yet — GHCR is the simplest, works with the built-in `GITHUB_TOKEN`). Consider multi-arch (amd64 + arm64) and a `PG_MAJOR` matrix for tags like `:pg16`, `:pg17`.
-- Optional ideas, not requested yet: healthcheck based on last successful run, automated tests.
+- GitHub Actions workflow (repo: `artss/bkdb`) building and pushing the image on push to `main` (registry not decided yet — GHCR is the simplest, works with the built-in `GITHUB_TOKEN`). Consider multi-arch (amd64 + arm64) and a `PG_MAJOR` matrix for tags like `:pg16`, `:pg17`.
+- Optional ideas, not requested yet: healthcheck based on last successful run.
 
 ## Context
 

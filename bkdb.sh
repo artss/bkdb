@@ -188,4 +188,6 @@ if [[ $RUN_ON_START == true ]]; then run_once || true; fi
 
 # supercronic: passes our environment to jobs, never runs a job twice in
 # parallel, and on SIGTERM waits for a running dump before exiting.
-exec supercronic -passthrough-logs "$crontab"
+# Full path: as PID 1 it re-executes itself via argv[0] to reap zombies, and a
+# bare "supercronic" there fails with "fork exec: no such file or directory".
+exec "$(command -v supercronic)" -passthrough-logs "$crontab"

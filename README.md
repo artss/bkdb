@@ -13,14 +13,20 @@ It is meant to sit next to an app in its `docker-compose.yml`. Your file-level b
 - **Telegram notifications** — on failure (default), on every run, or never.
 - **Secrets from files** — `*_FILE` variants for Docker secrets.
 
-## Build
+## Image
 
-```bash
-docker build -t bkdb .                             # pg_dump 17
-docker build --build-arg PG_MAJOR=16 -t bkdb:16 .
+```
+ghcr.io/artss/bkdb:latest
 ```
 
-`pg_dump` must be the **same or newer** major version as the server — pg_dump 17 can dump servers 9.2–17. Check which `postgresqlNN-client` packages the Alpine base provides if you need another version.
+Built for `linux/amd64` and `linux/arm64` on every push to `main`, after the tests pass. It contains `pg_dump` 18, which can dump PostgreSQL servers 9.2–18 (pg_dump must be the **same or newer** major version as the server), and the MariaDB 11.8 client.
+
+To build it yourself, or with an older `pg_dump` (Alpine 3.24 has 16, 17 and 18):
+
+```bash
+docker build -t bkdb .
+docker build --build-arg PG_MAJOR=16 -t bkdb:pg16 .
+```
 
 ## Configuration
 
@@ -57,7 +63,7 @@ Standard libpq variables: `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD` (or `PGPASS
 
 Dumps use `--single-transaction --routines --events --triggers`, so InnoDB tables are consistent without locking.
 
-The bundled client is MariaDB 11.x, which requires TLS by default. If the server has no TLS configured, the dump fails with *"SSL is required, but the server does not support it"* — set `EXTRA_OPTS=--skip-ssl` (fine inside a private Docker network).
+The bundled MariaDB 11.8 client requires TLS by default. If the server has no TLS configured, the dump fails with *"SSL is required, but the server does not support it"* — set `EXTRA_OPTS=--skip-ssl` (fine inside a private Docker network).
 
 ### SQLite
 
@@ -126,7 +132,7 @@ Variable names match Immich's standard `.env`.
 
 ```yaml
   db-dump:
-    image: bkdb
+    image: ghcr.io/artss/bkdb
     restart: unless-stopped
     depends_on: [database]
     env_file: bkdb.env
@@ -145,7 +151,7 @@ Variable names match Immich's standard `.env`.
 
 ```yaml
   db-dump:
-    image: bkdb
+    image: ghcr.io/artss/bkdb
     restart: unless-stopped
     depends_on: [db]
     env_file: bkdb.env
@@ -166,7 +172,7 @@ Dumping all databases needs a user with global read privileges (root is simplest
 
 ```yaml
   db-dump:
-    image: bkdb
+    image: ghcr.io/artss/bkdb
     restart: unless-stopped
     env_file: bkdb.env
     environment:

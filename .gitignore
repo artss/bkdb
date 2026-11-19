@@ -4,6 +4,8 @@
 *.sql.[0-9]*
 *.sqlite3
 *.sqlite3.[0-9]*
+# ...but not the test seed scripts
+!test/init/*.sql
 /backup/
 .idea/
 .vscode/

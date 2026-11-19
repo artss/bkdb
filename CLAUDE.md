@@ -7,7 +7,8 @@ The owner (Art) talks to you in Russian. Code, comments, README and commit messa
 ## Files
 
 - `bkdb.sh` — the whole program (bash). Installed as `/usr/local/bin/bkdb.sh`.
-- `Dockerfile` — Alpine 3.22 + bash, coreutils, curl, tzdata, supercronic, sqlite, mariadb-client, `postgresql${PG_MAJOR}-client` (build arg, default 17).
+- `Dockerfile` — Alpine 3.24 + bash, coreutils, curl, tzdata, supercronic, sqlite, mariadb-client (11.8), `postgresql${PG_MAJOR}-client` (build arg, default 18 — the newest the base offers; bump base and default together).
+- `.github/workflows/ci.yml` — on PRs and pushes: shellcheck + `test/run.sh` against Postgres 16 and 18; on push to `main` after tests: multi-arch (amd64 + arm64, via QEMU) build pushed to `ghcr.io/artss/bkdb:latest`. Only `:latest` is published — no per-PG-major tags (Art's decision).
 - `README.md` — user-facing docs. Keep it in sync with every behaviour/env change.
 
 ## How it works
@@ -38,7 +39,7 @@ The owner (Art) talks to you in Russian. Code, comments, README and commit messa
 
 ## Testing
 
-`test/run.sh` (≈75 s, needs only Docker with compose) builds the image as `bkdb:test`, starts `test/compose.yml` — `pg` (postgres:16, older than the bundled pg_dump 17, like real setups) and `maria` (mariadb:11) seeded from `test/init/`, plus empty `pg-restore` / `maria-restore` — and runs the real container against them:
+`test/run.sh` (≈75 s, needs only Docker with compose) builds the image as `bkdb:test`, starts `test/compose.yml` — `pg` (postgres:`$PG_VERSION`, default 16 — older than the bundled pg_dump, like real setups; CI also runs 18) and `maria` (mariadb:11) seeded from `test/init/`, plus empty `pg-restore` / `maria-restore` — and runs the real container against them:
 - dump + restore round-trip: `pg_dumpall` (data + roles), `PG_DB`, MariaDB all databases and `MARIADB_DB`; `*_FILE` secrets; MariaDB password ` p#a\ss"w'd `
 - failures (wrong password, unreachable server, corrupt SQLite) → exit 1, previous dump byte-identical, no rotation, no temp file
 - rotation: KEEP=3, shrink to 1, grow back; SQLite copy integrity and non-WAL mode
@@ -52,8 +53,7 @@ Every behaviour change gets a test there. Before committing: `docker run --rm -v
 
 ## Roadmap
 
-- GitHub Actions workflow (repo: `artss/bkdb`) building and pushing the image on push to `main` (registry not decided yet — GHCR is the simplest, works with the built-in `GITHUB_TOKEN`). Consider multi-arch (amd64 + arm64) and a `PG_MAJOR` matrix for tags like `:pg16`, `:pg17`.
-- Optional ideas, not requested yet: healthcheck based on last successful run.
+- Optional ideas, not requested yet: healthcheck based on last successful run; versioned or `sha-` tags for pinning.
 
 ## Context
 

@@ -225,3 +225,11 @@ docker compose start vaultwarden
 ```
 
 Test a restore at least once — a backup you've never restored from is a hope, not a backup.
+
+## Development
+
+```bash
+test/run.sh
+```
+
+Builds the image, starts PostgreSQL and MariaDB servers with Docker Compose and checks dumps, restore round-trips, rotation, failure handling and the cron mode against the real container. Needs only Docker.

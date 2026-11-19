@@ -1,0 +1,39 @@
+# Database servers for test/run.sh. "pg" and "maria" are seeded from init/;
+# "*-restore" start empty and receive the dumps in restore round-trips.
+name: bkdb-test
+
+networks:
+  default:
+    name: bkdb-test
+
+x-postgres: &postgres
+  # Older major than the bundled pg_dump 17, like most real setups.
+  image: postgres:16-alpine
+  environment:
+    POSTGRES_PASSWORD: secret
+  healthcheck:
+    # TCP, not the socket: the temporary init server only listens on the socket.
+    test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "postgres"]
+    interval: 1s
+    retries: 90
+
+x-mariadb: &mariadb
+  image: mariadb:11
+  environment:
+    MARIADB_ROOT_PASSWORD: root
+  healthcheck:
+    test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+    interval: 1s
+    retries: 90
+
+services:
+  pg:
+    <<: *postgres
+    volumes:
+      - ./init/postgres.sql:/docker-entrypoint-initdb.d/init.sql:ro
+  pg-restore: *postgres
+  maria:
+    <<: *mariadb
+    volumes:
+      - ./init/mariadb.sql:/docker-entrypoint-initdb.d/init.sql:ro
+  maria-restore: *mariadb

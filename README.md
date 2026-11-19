@@ -111,7 +111,7 @@ Manual run: `docker compose run --rm db-dump once`
 
 ## Examples
 
-Shared notification settings in one file, e.g. `/opt/bkdb/common.env`:
+Notification settings go into `bkdb.env` next to the app's `docker-compose.yml`, separate from the app's own `.env`:
 
 ```env
 TG_BOT_TOKEN=123456:ABC...
@@ -129,7 +129,7 @@ Variable names match Immich's standard `.env`.
     image: bkdb
     restart: unless-stopped
     depends_on: [database]
-    env_file: /opt/bkdb/common.env
+    env_file: bkdb.env
     environment:
       DB_TYPE: postgres
       NAME: immich
@@ -148,7 +148,7 @@ Variable names match Immich's standard `.env`.
     image: bkdb
     restart: unless-stopped
     depends_on: [db]
-    env_file: /opt/bkdb/common.env
+    env_file: bkdb.env
     environment:
       DB_TYPE: mariadb
       NAME: app
@@ -168,7 +168,7 @@ Dumping all databases needs a user with global read privileges (root is simplest
   db-dump:
     image: bkdb
     restart: unless-stopped
-    env_file: /opt/bkdb/common.env
+    env_file: bkdb.env
     environment:
       DB_TYPE: sqlite
       NAME: vaultwarden

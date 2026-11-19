@@ -1,9 +1,16 @@
 #!/usr/bin/env bash
-# bkdb.dh — sidecar for dumping PostgreSQL / MariaDB / SQLite databases to files,
+# bkdb.sh — sidecar for dumping PostgreSQL / MariaDB / SQLite databases to files,
 # with optional Telegram notifications.
 #
-# Usage: bkdb.dh [cron|once]   (default: cron)
+# Usage: bkdb.sh [cron|once]   (default: cron)
+#        bkdb.sh <command...>  runs the command as is, without config checks
 set -euo pipefail
+
+# Anything other than our own commands is passed through (e.g. `sh` for debugging).
+case "${1:-cron}" in
+  cron|once) ;;
+  *)         exec "$@" ;;
+esac
 
 log() { echo "[$(date -Iseconds)] $*"; }
 die() { log "config error: $*"; exit 2; }
@@ -60,15 +67,31 @@ notify() {
 # Each dumper writes to $1 and must return non-zero on any failure.
 # (Explicit && chains: `set -e` is disabled inside functions called from `if`.)
 
+# check_footer FILE LINES PATTERN — a dump that exits 0 but lacks the tool's
+# completion footer is truncated; say so, since the tool printed nothing.
+check_footer() {
+  tail -n "$2" "$1" | grep -q "$3" ||
+    { echo "dump is incomplete: completion footer '$3' not found" >&2; return 1; }
+}
+
 dump_postgres() {
   local tmp=$1
   if [[ -n "${PG_DB:-}" ]]; then
     pg_dump --clean --if-exists "${EXTRA[@]}" -d "$PG_DB" >"$tmp" &&
-      tail -n 5 "$tmp" | grep -q 'PostgreSQL database dump complete'
+      check_footer "$tmp" 5 'PostgreSQL database dump complete'
   else
     pg_dumpall --clean --if-exists "${EXTRA[@]}" >"$tmp" &&
-      tail -n 5 "$tmp" | grep -q 'PostgreSQL database cluster dump complete'
+      check_footer "$tmp" 5 'PostgreSQL database cluster dump complete'
   fi
+}
+
+# Option-file value: quoted so '#' isn't a comment and edge spaces survive;
+# backslash, double quote and newline escaped (MariaDB unescapes them).
+cnf_value() {
+  local v=${1//\\/\\\\}
+  v=${v//\"/\\\"}
+  v=${v//$'\n'/\\n}
+  printf '"%s"' "$v"
 }
 
 dump_mariadb() {
@@ -78,10 +101,10 @@ dump_mariadb() {
   chmod 600 "$cnf"
   {
     echo "[client]"
-    echo "host=$MARIADB_HOST"
-    echo "port=${MARIADB_PORT:-3306}"
-    echo "user=$MARIADB_USER"
-    if [[ -n "${MARIADB_PASSWORD:-}" ]]; then echo "password=$MARIADB_PASSWORD"; fi
+    echo "host=$(cnf_value "$MARIADB_HOST")"
+    echo "port=$(cnf_value "${MARIADB_PORT:-3306}")"
+    echo "user=$(cnf_value "$MARIADB_USER")"
+    if [[ -n "${MARIADB_PASSWORD:-}" ]]; then echo "password=$(cnf_value "$MARIADB_PASSWORD")"; fi
   } >"$cnf"
 
   local target=(--all-databases)
@@ -90,7 +113,7 @@ dump_mariadb() {
   mariadb-dump --defaults-extra-file="$cnf" \
       --single-transaction --routines --events --triggers \
       --skip-dump-date "${EXTRA[@]}" "${target[@]}" >"$tmp" &&
-    tail -n 3 "$tmp" | grep -q '^-- Dump completed'
+    check_footer "$tmp" 3 '^-- Dump completed'
   rc=$?
   rm -f "$cnf"
   return $rc
@@ -153,11 +176,7 @@ ${msg:-unknown error}"
 }
 
 # --- main ----------------------------------------------------------------------
-case "${1:-cron}" in
-  once) run_once; exit ;;
-  cron) ;;
-  *)    exec "$@" ;;
-esac
+if [[ ${1:-cron} == once ]]; then run_once; exit; fi
 
 self=$(readlink -f "$0")
 crontab=$(mktemp)

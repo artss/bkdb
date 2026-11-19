@@ -23,7 +23,7 @@ The owner (Art) talks to you in Russian. Code, comments, README and commit messa
 - **Verification by footer**: Postgres dump must end with `PostgreSQL database [cluster ]dump complete`, MariaDB with `-- Dump completed`. This catches truncated dumps that exit 0.
 - **SQLite via `VACUUM INTO`** (not `.backup`, not file copy): consistent, compacted, non-WAL standalone file; then `PRAGMA integrity_check` on the copy.
 - **Postgres**: `pg_dumpall` by default (includes roles), `pg_dump -d $PG_DB` if set. Connection only via standard libpq env (`PGHOST`, `PGUSER`, `PGPASSWORD`…). pg_dump must be ≥ server major → `PG_MAJOR` build arg.
-- **MariaDB**: password goes into a `mktemp` option file (mode 600, removed after) passed with `--defaults-extra-file` — never argv or `MYSQL_PWD`. `--single-transaction --routines --events --triggers`. Client 11.x requires TLS by default; users set `EXTRA_OPTS=--skip-ssl` for non-TLS servers.
+- **MariaDB**: password goes into a `mktemp` option file (mode 600, removed after) passed with `--defaults-extra-file` — never argv or `MYSQL_PWD`. Values are double-quoted and escaped (`cnf_value`): unquoted, `#` starts a comment and edge spaces are stripped. `--single-transaction --routines --events --triggers`. Client 11.x requires TLS by default; users set `EXTRA_OPTS=--skip-ssl` for non-TLS servers.
 - **Secrets**: `PGPASSWORD_FILE`, `MARIADB_PASSWORD_FILE`, `TG_BOT_TOKEN_FILE` supported.
 - **Output dir is hardcoded `/backup`**, not configurable — it's internal to the container.
 - **Telegram failures never fail the run** (logged as warning). `NOTIFY=failure|always|never`.
@@ -44,7 +44,9 @@ There is no automated test suite yet. What was verified manually (against Postgr
 - rotation with KEEP=3, shrink to 1, grow to 4; invalid KEEP/SCHEDULE/DB_TYPE → exit 2
 - Telegram unreachable → warning only
 
-**Not yet verified**: the Docker image build, and supercronic in the real container (only tested with a stub).
+Also verified: `docker build` (Alpine 3.22: pg_dump 17, mariadb-dump 11.4); MariaDB password ` p#a\ss"w'd ` against a real MariaDB 11 server; non-`cron`/`once` commands pass through without config checks.
+
+**Not yet verified**: supercronic in the real container (only tested with a stub).
 
 Before committing: `shellcheck bkdb.sh` and `docker build .`. A worthwhile next step is `test/` with a compose file spinning up postgres + mariadb + a SQLite file and running `bkdb once` against each.
 

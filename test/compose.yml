@@ -7,8 +7,9 @@ networks:
     name: bkdb-test
 
 x-postgres: &postgres
-  # Older major than the bundled pg_dump 17, like most real setups.
-  image: postgres:16-alpine
+  # Older major than the bundled pg_dump by default, like most real setups;
+  # CI also runs with PG_VERSION=18 (same major as pg_dump).
+  image: postgres:${PG_VERSION:-16}-alpine
   environment:
     POSTGRES_PASSWORD: secret
   healthcheck:
